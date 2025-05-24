@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Add these to your global CSS or Tailwind setup for simplicity
+   Or integrate them as Tailwind classes directly in the JSX */
+.input-base { @apply w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm; }
+.input-readonly { @apply input-base bg-gray-100 cursor-not-allowed; }
+.select-input { @apply input-base; } /* For select elements */
+.btn-primary { @apply bg-indigo-600 text-white px-6 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500; }
+.btn-link { @apply text-sm font-medium text-indigo-600 hover:text-indigo-800; }
+.dropdown-trigger { @apply w-full px-3 py-2 border border-gray-300 rounded-md bg-white cursor-pointer flex justify-between items-center shadow-sm text-sm; }
+.dropdown-menu { @apply absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto; }
+.dropdown-item { @apply flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm; }
+.form-checkbox { @apply h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-2; }
