@@ -17,8 +17,8 @@ const Customer = require('../models/CustomerModel');
     },
 });*/
 
-const user = process.env.GMAIL_USER || 'ch23799@gmail.com';
-const pass = process.env.GMAIL_PASS || 'prlg tbrs bnsk gljy';
+const user = process.env.GMAIL_USER ;
+const pass = process.env.GMAIL_PASS ;
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
