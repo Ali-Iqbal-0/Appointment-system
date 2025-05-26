@@ -1,48 +1,62 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  Bell, // Kept if you plan to add notifications back later
+  Bell,
   Home,
   LogOut,
   Search,
   User,
   X,
-  // User2, // Replaced by UserCircle for profile icon
-  SettingsIcon, // You had this, good for settings link
-  // User2Icon, // This was for the bell button, replacing with profile icon
-  UserCircle2, // Better for profile avatar
-  CreditCard, // For Subscription/Manage
-  Users, // For IT Specialists or Community
-  Briefcase, // For Workspaces
-  Archive, // For Resources
-  Presentation, // For Webinars (Lucide: MonitorPlay)
-  Newspaper, // For What's New
-  BookOpen, // For Help Guide
-  Code2, // For Developer API
-  Trash2, // For Delete My Account
-  HelpCircle, // For bottom Help button
-  BookUser, // For bottom User Guide button
-  Crown, // For Premium Trial Badge
-  MonitorPlay, // Lucide version for Webinars
+  SettingsIcon,
+  UserCircle2,
+  CreditCard,
+  Users,
+  Briefcase,
+  Archive,
+  Presentation,
+  Newspaper,
+  BookOpen,
+  Code2,
+  Trash2,
+  HelpCircle,
+  BookUser,
+  Crown,
+  MonitorPlay,
+  CalendarDays,
+  Clock,
+  Building,
+  Phone,
+  UserCog,
+  Workflow,
+  Plus,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast,Bounce } from "react-toastify";
-
+import { toast, Bounce } from "react-toastify";
+import { BASE_URL } from "../BaseUrl"; // Assuming BaseUrl.js is in the parent directory
+import { Calendar } from "lucide-react";
 const Navbar = () => {
-  // const [isProfileOpen, setProfileOpen] = useState(false); // Old state, replaced by isPanelOpen
   const [isSearchOpen, setSearchOpen] = useState(false);
-  const [isPanelOpen, setIsPanelOpen] = useState(false); // For the new Profile/Settings Panel
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [isAddMenuOpen, setAddMenuOpen] = useState(false);
 
-  const panelRef = useRef(null); // Ref for the new panel
+  const panelRef = useRef(null);
   const searchInputRef = useRef(null);
-  const profileButtonRef = useRef(null); // Ref for the button that opens the panel
-
+  const profileButtonRef = useRef(null);
+  const addMenuRef = useRef(null);
+  
   const navigate = useNavigate();
 
-  // Hardcoded data for the panel based on your screenshot
-  const userData = {
-    name: "Ali Iqbal",
-    email: "fairchanceforcrm124@outlook.com",
-    timezone: "Asia/Karachi",
+  // State for Super Admin's dynamic data
+  const [superAdminDisplay, setSuperAdminDisplay] = useState({
+    name: "Loading...",
+    email: "Fetching data...",
+  });
+  const [isLoadingPanelData, setIsLoadingPanelData] = useState(true);
+  // eslint-disable-next-line no-unused-vars
+  const [panelDataError, setPanelDataError] = useState(null); // Kept for future use if needed
+
+  // Static part of the panel data (timezone, subscription details)
+  const staticPanelData = {
+    timezone: "Asia/Karachi", // This could also be fetched if available on user model
     avatarUrl: "", // Placeholder for actual avatar image URL
     subscription: {
       type: "Premium Trial",
@@ -52,9 +66,57 @@ const Navbar = () => {
     },
   };
 
+  const addMenuItems = [
+    { name: "Appointment", icon: <CalendarDays className="w-5 h-5" />, color: "text-orange-500", bgColor: "bg-orange-100" },
+    { name: "Unavailability", icon: <Clock className="w-5 h-5" />, color: "text-blue-500", bgColor: "bg-blue-100" },
+    { name: "Special Working Hours", icon: <Clock className="w-5 h-5" />, color: "text-purple-500", bgColor: "bg-purple-100" },
+    { name: "Workspace", icon: <Building className="w-5 h-5" />, color: "text-green-500", bgColor: "bg-green-100" },
+    { name: "Call", icon: <Phone className="w-5 h-5" />, color: "text-pink-500", bgColor: "bg-pink-100" },
+    { name: "Recruiter", icon: <UserCog className="w-5 h-5" />, color: "text-teal-500", bgColor: "bg-teal-100" },
+    { name: "Customer", icon: <Users className="w-5 h-5" />, color: "text-red-500", bgColor: "bg-red-100" },
+    { name: "Workflow", icon: <Workflow className="w-5 h-5" />, color: "text-indigo-500", bgColor: "bg-indigo-100" },
+  ];
+  
+  // Fetch Super Admin data on component mount
+  useEffect(() => {
+    const fetchSuperAdmin = async () => {
+      setIsLoadingPanelData(true);
+      setPanelDataError(null);
+      try {
+        const response = await fetch(`${BASE_URL}/api/users/getUsers`); 
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({})); // Try to parse error, default to empty object
+          throw new Error(errorData.message || `Failed to fetch users. Status: ${response.status}`);
+        }
+        const result = await response.json();
+        if (result.success && result.data) {
+          const admin = result.data.find(user => user.role === 'Super Admin');
+          if (admin) {
+            setSuperAdminDisplay({
+              name: admin.name,
+              email: admin.email,
+            });
+          } else {
+            setPanelDataError('Super Admin user not found.');
+            setSuperAdminDisplay({ name: "Super Admin", email: "Not configured" }); // Fallback
+          }
+        } else {
+          throw new Error(result.message || 'Failed to process user data');
+        }
+      } catch (error) {
+        console.error("Error fetching Super Admin data:", error);
+        setPanelDataError(error.message);
+        setSuperAdminDisplay({ name: "Error", email: "Could not load data" }); // Error fallback
+      } finally {
+        setIsLoadingPanelData(false);
+      }
+    };
+
+    fetchSuperAdmin();
+  }, []); // Empty dependency array to run once on mount
+
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Close panel if click is outside of it AND not on the button that opens it
       if (
         panelRef.current &&
         !panelRef.current.contains(event.target) &&
@@ -63,24 +125,27 @@ const Navbar = () => {
       ) {
         setIsPanelOpen(false);
       }
-      // Close search if click is outside
       if (
         isSearchOpen &&
         searchInputRef.current &&
         !searchInputRef.current.contains(event.target) &&
-        event.target !== document.querySelector(".search-icon-button") // Ensure not clicking the search toggle
+        !event.target.closest(".search-icon-button") // Check closest for SVG clicks
       ) {
         setSearchOpen(false);
+      }
+       if (addMenuRef.current && !addMenuRef.current.contains(event.target) && !event.target.closest(".add-menu-button")) { // Check closest for SVG clicks
+        setAddMenuOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isSearchOpen, isPanelOpen]); // Added isPanelOpen dependency
+  }, [isSearchOpen, isPanelOpen, isAddMenuOpen]);
+
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    setIsPanelOpen(false); // Close panel on logout
+    setIsPanelOpen(false);
     navigate("/login");
   };
 
@@ -88,7 +153,7 @@ const Navbar = () => {
     setSearchOpen(!isSearchOpen);
     if (!isSearchOpen) {
       setTimeout(() => {
-        searchInputRef.current?.focus(); // Added optional chaining
+        searchInputRef.current?.focus();
       }, 100);
     }
   };
@@ -96,12 +161,19 @@ const Navbar = () => {
   const togglePanel = () => {
     setIsPanelOpen(!isPanelOpen);
   };
+  const getInitials = (name) => {
+    if (isLoadingPanelData || !name || name === "Loading..." || name === "Error") return "?";
+    const names = name.split(' ');
+    if (names.length === 1) return names[0].charAt(0).toUpperCase();
+    return (names[0].charAt(0) + (names.length > 1 ? names[names.length - 1].charAt(0) : '')).toUpperCase();
+  };
+
 
   return (
     <>
       <nav className="shadow-md z-[999] fixed w-full p-4 bg-blue-950 flex items-center justify-between">
         <div className="text-xl font-bold text-white">
-          <Link to="/">FairForse Bookings</Link>
+          <Link to="/">Fairforse Bookings</Link>
         </div>
 
         <div
@@ -121,25 +193,56 @@ const Navbar = () => {
           <button
             className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 search-icon-button"
             onClick={toggleSearch}
+            title="Search"
           >
             <Search className="w-5 h-5 text-gray-700" />
           </button>
+          <div className="relative" ref={addMenuRef}>
+          <button
+            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
+            onClick={() => setAddMenuOpen(!isAddMenuOpen)}
+          >
+            <Plus />
+          </button>
+
+          {isAddMenuOpen && (
+            <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg py-2 z-10">
+              <div className="px-4 py-2 text-gray-600 text-sm font-semibold">Add New</div>
+              {addMenuItems.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    console.log(`Clicked on ${item.name}`);
+                    setAddMenuOpen(false);
+                  }}
+                >
+                  <div className={`p-2 rounded-full ${item.bgColor} mr-3`}>
+                    {item.icon}
+                  </div>
+                  <span className="text-gray-800">{item.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <Link to={'/calender'} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200" >
+          <Calendar/>
+        </Link>
           <Link
-            to={"/settings"} // Assuming settings page route
+            to={"/settings"}
             className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
             title="Settings"
           >
             <SettingsIcon className="w-5 h-5 text-gray-700" />
           </Link>
 
-          {/* Profile Button that opens the panel */}
           <button
             ref={profileButtonRef}
             className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
             onClick={togglePanel}
             title="Profile & Settings"
           >
-            {/* Using UserCircle2 for a filled avatar-like icon */}
             <UserCircle2 className="w-6 h-6 text-gray-700" />
           </button>
         </div>
@@ -151,38 +254,35 @@ const Navbar = () => {
         className={`fixed top-0 right-0 z-[1000] w-full max-w-sm h-full bg-white shadow-2xl border-l border-gray-200 p-0 transition-transform duration-300 ease-in-out flex flex-col
           ${isPanelOpen ? "translate-x-0" : "translate-x-full"}`}
       >
-        {/* Panel Header - Trial Info & Close Button */}
         <div className="bg-indigo-700 text-white text-center py-3 text-sm relative">
           Your trial ends in 14 days
           <button
             onClick={togglePanel}
             className="absolute top-1/2 right-4 transform -translate-y-1/2 text-indigo-200 hover:text-white"
+            aria-label="Close panel"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Scrollable Content Area */}
         <div className="flex-grow overflow-y-auto p-5">
-          {/* User Info Section */}
           <div className="text-center mb-6">
-            <div className="mx-auto w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-3 border-2 border-indigo-400">
-              {/* Placeholder for avatar image or initials */}
-              {userData.avatarUrl ? (
-                <img
-                  src={userData.avatarUrl}
-                  alt={userData.name}
-                  className="w-full h-full rounded-full object-cover"
-                />
+            <div className="mx-auto w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-3 border-2 border-indigo-400 text-3xl font-semibold text-indigo-600">
+              {isLoadingPanelData ? (
+                 <div className="animate-pulse w-12 h-12 bg-gray-300 rounded-full"></div>
+              ) : staticPanelData.avatarUrl ? (
+                <img src={staticPanelData.avatarUrl} alt={superAdminDisplay.name} className="w-full h-full rounded-full object-cover"/>
               ) : (
-                <User className="w-12 h-12 text-gray-400" /> // Generic user icon
+                getInitials(superAdminDisplay.name)
               )}
             </div>
             <h2 className="text-xl font-semibold text-gray-800">
-              {userData.name}
+              {isLoadingPanelData ? <div className="h-6 bg-gray-300 rounded w-3/4 mx-auto animate-pulse"></div> : superAdminDisplay.name}
             </h2>
-            <p className="text-sm text-gray-500">{userData.email}</p>
-            <p className="text-xs text-gray-400 mt-1">{userData.timezone}</p>
+            <p className="text-sm text-gray-500">
+              {isLoadingPanelData ? <div className="h-4 bg-gray-300 rounded w-1/2 mx-auto mt-1 animate-pulse"></div> : superAdminDisplay.email}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">{staticPanelData.timezone}</p>
             <Link
               to="/org-details"
               onClick={togglePanel}
@@ -192,148 +292,53 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* My Account / Sign Out Buttons */}
           <div className="flex border border-gray-200 rounded-lg mb-8">
-            <Link
-              to="/my-account"
-              onClick={togglePanel}
-              className="flex-1 flex items-center justify-center gap-2 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-l-lg"
-            >
+            <Link to="/my-account" onClick={togglePanel} className="flex-1 flex items-center justify-center gap-2 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-l-lg">
               <User className="w-4 h-4" /> My Account
             </Link>
-            <button
-              onClick={handleLogout}
-              className="flex-1 flex items-center justify-center gap-2 py-3 text-sm text-red-600 hover:bg-red-50 border-l border-gray-200 rounded-r-lg"
-            >
-              <LogOut className="w-4 h-4" /> Sign Out{" "}
-              {/* Using Lucide's LogOut */}
+            <button onClick={handleLogout} className="flex-1 flex items-center justify-center gap-2 py-3 text-sm text-red-600 hover:bg-red-50 border-l border-gray-200 rounded-r-lg">
+              <LogOut className="w-4 h-4" /> Sign Out
             </button>
           </div>
 
-          {/* Subscription Section */}
           <div className="mb-8 p-4 border border-gray-200 rounded-lg relative">
             <div className="absolute top-4 left-0 w-1 h-6 bg-indigo-600 rounded-r-full"></div>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-md font-semibold text-gray-800 pl-3">
-                Subscription
-              </h3>
-              <Link
-                to="/manage-subscription"
-                onClick={togglePanel}
-                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-              >
-                Manage
-              </Link>
+              <h3 className="text-md font-semibold text-gray-800 pl-3">Subscription</h3>
+              <Link to="/manage-subscription" onClick={togglePanel} className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">Manage</Link>
             </div>
             <div className="bg-yellow-100 border border-yellow-300 text-yellow-700 text-xs font-semibold px-3 py-1.5 rounded-md inline-flex items-center gap-1 mb-4">
-              <Crown className="w-3 h-3" /> {userData.subscription.type}
+              <Crown className="w-3 h-3" /> {staticPanelData.subscription.type}
             </div>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-gray-500" /> IT Specialists -{" "}
-                {userData.subscription.itSpecialists.current}/
-                {userData.subscription.itSpecialists.max}
-              </li>
-              <li className="flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-gray-500" /> Workspaces -{" "}
-                {userData.subscription.workspaces.current}/
-                {userData.subscription.workspaces.max}
-              </li>
-              <li className="flex items-center gap-2">
-                <Archive className="w-4 h-4 text-gray-500" /> Resources -{" "}
-                {userData.subscription.resources.current}/
-                {userData.subscription.resources.max}
-              </li>
+              <li className="flex items-center gap-2"><Users className="w-4 h-4 text-gray-500" /> IT Specialists - {staticPanelData.subscription.itSpecialists.current}/{staticPanelData.subscription.itSpecialists.max}</li>
+              <li className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-gray-500" /> Workspaces - {staticPanelData.subscription.workspaces.current}/{staticPanelData.subscription.workspaces.max}</li>
+              <li className="flex items-center gap-2"><Archive className="w-4 h-4 text-gray-500" /> Resources - {staticPanelData.subscription.resources.current}/{staticPanelData.subscription.resources.max}</li>
             </ul>
           </div>
 
-          {/* Need Help Section */}
           <div className="mb-8 p-4 border border-gray-200 rounded-lg relative">
             <div className="absolute top-4 left-0 w-1 h-6 bg-indigo-600 rounded-r-full"></div>
-            <h3 className="text-md font-semibold text-gray-800 mb-4 pl-3">
-              Need Help?
-            </h3>
+            <h3 className="text-md font-semibold text-gray-800 mb-4 pl-3">Need Help?</h3>
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-              <Link
-                to="/webinars"
-                onClick={togglePanel}
-                className="flex items-center gap-2 text-gray-700 hover:text-indigo-600"
-              >
-                <MonitorPlay className="w-5 h-5 text-gray-500" /> Webinars
-              </Link>
-              <Link
-                to="/whats-new"
-                onClick={togglePanel}
-                className="flex items-center gap-2 text-gray-700 hover:text-indigo-600"
-              >
-                <Newspaper className="w-5 h-5 text-gray-500" /> What's New?
-              </Link>
-              <Link
-                to="/help-guide"
-                onClick={togglePanel}
-                className="flex items-center gap-2 text-gray-700 hover:text-indigo-600"
-              >
-                <BookOpen className="w-5 h-5 text-gray-500" /> Help Guide
-              </Link>
-              <Link
-                to="/community"
-                onClick={togglePanel}
-                className="flex items-center gap-2 text-gray-700 hover:text-indigo-600"
-              >
-                <Users className="w-5 h-5 text-gray-500" /> Community
-              </Link>
-              <Link
-                to="/developer-api"
-                onClick={togglePanel}
-                className="flex items-center gap-2 text-gray-700 hover:text-indigo-600"
-              >
-                <Code2 className="w-5 h-5 text-gray-500" /> Developer API
-              </Link>
+              <Link to="/webinars" onClick={togglePanel} className="flex items-center gap-2 text-gray-700 hover:text-indigo-600"><MonitorPlay className="w-5 h-5 text-gray-500" /> Webinars</Link>
+              <Link to="/whats-new" onClick={togglePanel} className="flex items-center gap-2 text-gray-700 hover:text-indigo-600"><Newspaper className="w-5 h-5 text-gray-500" /> What's New?</Link>
+              <Link to="/help-guide" onClick={togglePanel} className="flex items-center gap-2 text-gray-700 hover:text-indigo-600"><BookOpen className="w-5 h-5 text-gray-500" /> Help Guide</Link>
+              <Link to="/community" onClick={togglePanel} className="flex items-center gap-2 text-gray-700 hover:text-indigo-600"><Users className="w-5 h-5 text-gray-500" /> Community</Link>
+              <Link to="/developer-api" onClick={togglePanel} className="flex items-center gap-2 text-gray-700 hover:text-indigo-600"><Code2 className="w-5 h-5 text-gray-500" /> Developer API</Link>
             </div>
           </div>
 
-          {/* Delete Account (outside the bordered box, but still within scrollable area) */}
-          <button
-            onClick={() => {
-              /* Implement delete account logic */ toast.warn(
-                "Delete account clicked!",
-                {
-                  position: "top-right",
-                  autoClose: 5000,
-                  hideProgressBar: false,
-                  closeOnClick: false,
-                  pauseOnHover: true,
-                  draggable: true,
-                  progress: undefined,
-                  theme: "light",
-                  transition: Bounce,
-                }
-              );
-              togglePanel();
-            }}
+          <button onClick={() => { toast.warn("Delete account clicked!",{ position: "top-right", autoClose: 3000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true, draggable: true, theme: "light", transition: Bounce, }); togglePanel();}}
             className="w-full flex items-center justify-center gap-2 text-sm text-red-600 hover:text-red-800 py-3"
           >
             <Trash2 className="w-4 h-4" /> Delete My Account
           </button>
         </div>
 
-        {/* Panel Footer - Help & User Guide */}
         <div className="border-t border-gray-200 p-4 flex items-center justify-around text-xs">
-          <Link
-            to="/help"
-            onClick={togglePanel}
-            className="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 font-medium"
-          >
-            <HelpCircle className="w-4 h-4" /> Help
-          </Link>
-          <Link
-            to="/user-guide"
-            onClick={togglePanel}
-            className="flex items-center gap-1.5 text-gray-600 hover:text-gray-800 font-medium"
-          >
-            <BookUser className="w-4 h-4" /> User Guide
-          </Link>
-          {/* You can add a third item here if needed, like the icon in your screenshot that I couldn't clearly identify */}
+          <Link to="/help" onClick={togglePanel} className="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 font-medium"><HelpCircle className="w-4 h-4" /> Help</Link>
+          <Link to="/user-guide" onClick={togglePanel} className="flex items-center gap-1.5 text-gray-600 hover:text-gray-800 font-medium"><BookUser className="w-4 h-4" /> User Guide</Link>
         </div>
       </div>
     </>
